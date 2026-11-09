@@ -12,9 +12,9 @@ flags fraudulent transactions without blocking legitimate customers.]
 ## Team
 | Name | GitHub username | Role |
 |------|-----------------|------|
-| [Name] | Fatimaalw | [e.g. data cleaning and EDA] |
-| [Name] | [username] | [role] |
-| [Name] | [username] | [role] |
+| Fatima Adeeb | Fatimaalw | [role] |
+| Amna Salem | mnaya4345-jpg | [role] |
+| Amna Juma | Amna1633 | [role] |
 
 ## Dataset
 - **Name:** Credit Card Fraud Detection
