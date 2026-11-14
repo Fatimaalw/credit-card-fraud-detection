@@ -12,10 +12,9 @@ flags fraudulent transactions without blocking legitimate customers.]
 ## Team
 | Name | GitHub username | Role |
 |------|-----------------|------|
-| Fatima Adeeb | Fatimaalw | [role] |
-| Amna Salem | mnaya4345-jpg | [role] |
-| Amna Juma | Amna1633 | [role] |
-
+| Fatima Adeeb | Fatimaalw | Problem formulation, dataset search, Streamlit deployment, repository management |
+| Amna Salem | mnaya4345-jpg | Data cleaning, EDA and feature engineering |
+| Amna Juma | Amna1633 | Model development, tuning and evaluation |
 ## Dataset
 - **Name:** Credit Card Fraud Detection
 - **Provider:** Machine Learning Group, Universite Libre de Bruxelles (ULB), with Worldline
