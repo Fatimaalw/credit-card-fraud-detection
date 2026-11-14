@@ -16,7 +16,7 @@ Card fraud causes direct financial losses for banks and damages customer trust. 
 - **Name:** Credit Card Fraud Detection
 - **Provider:** Machine Learning Group, Université Libre de Bruxelles (ULB), with Worldline
 - **Source:** https://www.kaggle.com/mlg-ulb/creditcardfraud
-- **Licence:** ODbL v1.0 as listed on Kaggle (to be confirmed on the Kaggle page; see `docs/`)
+- **Licence:** Database: Open Database License (ODbL) v1.0; Contents: Database Contents License (DbCL) v1.0, as stated on the Kaggle dataset page (checked 14 November 2026; screenshot in `docs/`).
 - **Size:** 284,807 rows x 31 columns (Time, V1-V28, Amount, Class)
 - **Target:** `Class` (1 = fraud, 0 = legitimate); 492 frauds (0.173%)
 - **How to obtain:** `creditcard.csv` is about 144 MB, above GitHub's 100 MB limit, so it is not stored in this repository. Download it from the Kaggle link above and place it next to the notebook (or in a `data/` folder). A small sample is provided in `creditcard_sample.csv`; it contains all fraud rows plus 5,000 random legitimate rows, so it is only for testing that the code runs.
