@@ -1,1 +1,179 @@
+import os
 
+print(os.getcwd())
+print(os.listdir())
+import os
+
+os.chdir("/Users/hnanali/Desktop/Final Project/Stage7_Deployment_Package")
+
+print(os.getcwd())
+print(os.listdir())
+%pip install -r requirements.txt
+with open("app.py", "r") as file:
+    print(file.read())
+mport json
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+APP_DIR = Path(__file__).parent
+MODEL_PATH = APP_DIR / "models" / "fraud_random_forest.joblib"
+DEMO_PATH = APP_DIR / "demo_transaction.json"
+
+st.set_page_config(
+    page_title="Credit Card Fraud Detection",
+    page_icon="💳",
+    layout="wide"
+)
+
+@st.cache_resource
+def load_artifact():
+    return joblib.load(MODEL_PATH)
+
+artifact = load_artifact()
+model = artifact["model"]
+feature_columns = artifact["feature_columns"]
+threshold = float(artifact["threshold"])
+
+st.title("💳 Credit Card Fraud Detection")
+st.caption("A machine-learning decision-support demonstration for reviewing suspicious card transactions.")
+
+st.info(
+    "This academic prototype estimates fraud risk. It must not automatically block real payments. "
+    "The V1–V28 inputs are anonymised PCA components from the source dataset; a production bank "
+    "would need a secure feature-generation pipeline to calculate them."
+)
+
+with st.sidebar:
+    st.header("Model information")
+    st.write(f"**Model:** {artifact['model_name']}")
+    st.write(f"**Decision threshold:** {threshold:.2f}")
+    st.write(f"**Training transactions:** {artifact['training_rows']:,}")
+    st.write(f"**Training fraud cases:** {artifact['training_fraud_cases']:,}")
+    st.divider()
+    st.caption("Threshold selected in Stage 6 using the documented illustrative cost ratio FN:FP = 10:1.")
+
+st.subheader("Enter transaction details")
+st.write(
+    "Enter the 28 anonymised transaction components, the transaction amount, "
+    "and elapsed time in seconds. Or load the included example transaction."
+)
+
+if "demo_values" not in st.session_state:
+    st.session_state.demo_values = None
+
+top1, top2 = st.columns([1, 3])
+with top1:
+    if st.button("Load example transaction", use_container_width=True):
+        with open(DEMO_PATH, "r") as f:
+            st.session_state.demo_values = json.load(f)
+        st.rerun()
+with top2:
+    if st.session_state.demo_values:
+        st.success("Example transaction loaded. You can edit any value before predicting.")
+
+defaults = st.session_state.demo_values or {}
+with st.form("transaction_form"):
+    st.markdown("**Transaction information**")
+    c1, c2 = st.columns(2)
+    amount = c1.number_input(
+        "Transaction amount",
+        min_value=0.0, max_value=1000000.0,
+        value=float(defaults.get("Amount", 100.0)), step=1.0,
+        help="Amount in the source dataset's currency units."
+    )
+    elapsed_time = c2.number_input(
+        "Time (seconds since dataset start)",
+        min_value=0.0, max_value=10000000.0,
+        value=float(defaults.get("Time", 3600.0)), step=60.0,
+        help="The model converts this into Hour_Offset = (Time // 3600) % 24."
+    )
+
+    st.markdown("**Anonymised PCA components (V1–V28)**")
+    st.caption("These values are anonymised and do not correspond directly to familiar bank transaction fields.")
+    cols = st.columns(4)
+    component_values = {}
+    for idx in range(1, 29):
+        col = cols[(idx - 1) % 4]
+        key = f"V{idx}"
+        component_values[key] = col.number_input(
+            key,
+            value=float(defaults.get(key, 0.0)),
+            format="%.6f",
+            key=f"input_{key}"
+        )
+
+    submitted = st.form_submit_button("Predict fraud risk", type="primary", use_container_width=True)
+
+if submitted:
+    row = {**component_values}
+    row["Log_Amount"] = float(np.log1p(amount))
+    row["Hour_Offset"] = int((int(elapsed_time) // 3600) % 24)
+    input_df = pd.DataFrame([row], columns=feature_columns)
+
+    probability = float(model.predict_proba(input_df)[0, 1])
+    is_fraud = probability >= threshold
+
+    st.divider()
+    st.subheader("Prediction result")
+    left, right = st.columns([1, 1])
+    left.metric("Estimated fraud probability", f"{probability:.2%}")
+    right.metric("Decision threshold", f"{threshold:.0%}")
+    st.progress(min(max(probability, 0.0), 1.0))
+
+    if is_fraud:
+        st.error("⚠️ HIGH RISK — Flag this transaction for fraud analyst review.")
+        decision = "Flag for review"
+    else:
+        st.success("✅ LOWER RISK — The model did not flag this transaction at the selected threshold.")
+        decision = "Not flagged by this model"
+
+    st.write(f"**Model decision:** {decision}")
+    st.caption(
+        "A lower-risk prediction does not guarantee that a transaction is legitimate. "
+        "The result should be combined with bank rules, authentication signals, and human review."
+    )
+
+    with st.expander("How to interpret this prediction"):
+        st.write(
+            f"The model estimates a fraud probability of **{probability:.2%}**. "
+            f"It flags transactions when the estimated probability is at least **{threshold:.0%}**. "
+            "The probability is a model score, not a guarantee or a calibrated financial loss estimate."
+        )
+        st.write(
+            f"Derived features used: Log_Amount = log(1 + {amount:.2f}) and "
+            f"Hour_Offset = {row['Hour_Offset']}."
+        )
+
+st.divider()
+st.subheader("Stage 6 test-set performance")
+metrics = artifact["stage6_test_metrics"]
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("PR-AUC", f"{metrics['PR-AUC']:.4f}")
+m2.metric("Precision", f"{metrics['Precision']:.1%}")
+m3.metric("Recall", f"{metrics['Recall']:.1%}")
+m4.metric("F1-score", f"{metrics['F1-score']:.4f}")
+st.caption(
+    "These are the recorded Stage 6 chronological hold-out test results, not results from the "
+    "transaction currently entered above."
+)
+
+with st.expander("Confusion matrix counts from Stage 6"):
+    st.write({
+        "True negatives": metrics["TN"],
+        "False positives": metrics["FP"],
+        "False negatives": metrics["FN"],
+        "True positives": metrics["TP"]
+    })
+    st.warning(
+        "Stage 6 did not meet the original PR-AUC target of 0.82 or recall target of 75%. "
+        "The model is therefore presented as a prototype requiring further improvement."
+    )
+
+st.caption("CDS4003 — Data Science for Business Application | Stage 7: Deployment")
+import sys
+
+!{sys.executable} -m streamlit run app.py
